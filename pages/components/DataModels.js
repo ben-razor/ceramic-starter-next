@@ -40,6 +40,7 @@ function DataModels(props) {
     }, [ceramic, setPublished]);
 
     return <div className="data-models">
+        <h2>Tests On Data Models</h2>
         <div>
             Published:
             {JSON.stringify(published)}

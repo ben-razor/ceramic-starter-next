@@ -1,4 +1,5 @@
 import '../styles/globals.css'
+import styles from '../styles/App.module.css'
 import CeramicClient from '@ceramicnetwork/http-client';
 import { useEffect, useState, Fragment } from 'react';
 import ThreeIdResolver from '@ceramicnetwork/3id-did-resolver';
@@ -17,6 +18,7 @@ function MyApp() {
   const [ceramic, setCeramic] = useState();
   const [ethAddresses, setEthAddresses] = useState();
   const [ethereum, setEthereum] = useState();
+  const [commits, setCommits] = useState([]);
 
   useEffect(() => {
     if(window.ethereum) {
@@ -72,22 +74,36 @@ function MyApp() {
         const newUpdatedDoc = await TileDocument.load(ceramic, streamId)
         setUpdatedDoc(JSON.stringify(newUpdatedDoc.content));
 
+        let newCommits = [];
         for(let commitID of newUpdatedDoc.allCommitIds) {
           const commitDoc = await TileDocument.load(ceramic, commitID);
-          console.log(JSON.stringify(commitDoc.content));
+          newCommits.push(commitDoc.content);
         }
+        setCommits(newCommits);
       })();
     }
   }, [ceramic, setCeramic, setTestDoc, setStreamId]);
 
   function getTestDocUI(testDoc, streamId) {
     let content = <h3>Test doc loading...</h3>
+    let commitsUI = [];
+    for(let commit of commits) {
+      commitsUI.push(<div>{JSON.stringify(commit)}</div>);
+    }
+
     if(testDoc && streamId) {
-      content = <div>
+      content = <div className={styles.streamTestPanel}>
+        <h2>Tests On Basic Streams</h2>
         <h3>Test doc: {testDoc}</h3>
         <div> {streamId} </div>
         <h3>Test doc from load: {loadedDoc}</h3>
         <h3>Test doc after update: {updatedDoc}</h3>
+        <div>
+          <h3>Commits: </h3>
+          <div>
+            {commitsUI}
+          </div>
+        </div>
       </div>;
     }
     return content
@@ -107,7 +123,7 @@ function MyApp() {
   }
 
   function getAppPanel() {
-    return <div className="csn-app">
+    return <div className={styles.csnApp}>
       <h1>Ceramic is here</h1>
       {getTestDocUI(testDoc, streamId)}
       <div>
@@ -118,12 +134,12 @@ function MyApp() {
 
   function getWaitingForDIDPanel() {
     return <div className="csn-waiting-for-did">
-      Waiting for a decentralized ID to be provided...
+      Waiting for a decentralized ID...
     </div>
   }
 
   return (
-    <div className="App">
+    <div className="csn-app">
       { 
         ethereum ? 
         (
