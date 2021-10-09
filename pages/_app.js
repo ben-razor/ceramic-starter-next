@@ -1,6 +1,6 @@
 import '../styles/globals.css'
 import CeramicClient from '@ceramicnetwork/http-client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import ThreeIdResolver from '@ceramicnetwork/3id-did-resolver';
 import { ThreeIdConnect,  EthereumAuthProvider } from '@3id/connect'
 import { TileDocument } from '@ceramicnetwork/stream-tile'
@@ -15,48 +15,70 @@ function MyApp() {
   const [updatedDoc, setUpdatedDoc] = useState();
   const [streamId, setStreamId] = useState();
   const [ceramic, setCeramic] = useState();
+  const [ethAddresses, setEthAddresses] = useState();
+  const [ethereum, setEthereum] = useState();
 
   useEffect(() => {
+    if(window.ethereum) {
+      setEthereum(window.ethereum);
+      (async() => {
+        try {
+          const addresses = await window.ethereum.request({ method: 'eth_requestAccounts'})
+          setEthAddresses(addresses);
+        }
+        catch(e) { 
+          console.log(e);
+        }
+      })();
+    }
+  }, []);
 
-    (async () => {
-      const newCeramic = new CeramicClient(API_URL);
+  useEffect(() => {
+    if(ethereum && ethAddresses) {
+      (async () => {
+        const newCeramic = new CeramicClient(API_URL);
 
-      const resolver = {
-        ...ThreeIdResolver.getResolver(newCeramic),
-      }
-      const did = new DID({ resolver })
-      newCeramic.did = did;
-      const addresses = await window.ethereum.enable()
-      const threeIdConnect = new ThreeIdConnect()
-      const authProvider = new EthereumAuthProvider(window.ethereum, addresses[0])
-      await threeIdConnect.connect(authProvider)
+        const resolver = {
+          ...ThreeIdResolver.getResolver(newCeramic),
+        }
+        const did = new DID({ resolver })
+        newCeramic.did = did;
+        const threeIdConnect = new ThreeIdConnect()
+        const authProvider = new EthereumAuthProvider(ethereum, ethAddresses[0]);
+        await threeIdConnect.connect(authProvider)
 
-      const provider = await threeIdConnect.getDidProvider();
-      newCeramic.did.setProvider(provider);
-      await newCeramic.did.authenticate();
+        const provider = await threeIdConnect.getDidProvider();
+        newCeramic.did.setProvider(provider);
+        await newCeramic.did.authenticate();
 
-      setCeramic(newCeramic);
+        setCeramic(newCeramic);
+      })();
+    }
+  }, [ethereum, ethAddresses]);
 
-      const doc = await TileDocument.create(newCeramic, {hello: 'benwar'})
-      setTestDoc(JSON.stringify(doc.content));
+  useEffect(() => {
+    if(ceramic) {
+      (async () => {
+        const doc = await TileDocument.create(ceramic, {hello: 'benwar'})
+        setTestDoc(JSON.stringify(doc.content));
 
-      const streamId = doc.id.toString();
-      setStreamId(streamId);
+        const streamId = doc.id.toString();
+        setStreamId(streamId);
 
-      const newLoadedDoc = await TileDocument.load(newCeramic, streamId)
-      setLoadedDoc(JSON.stringify(newLoadedDoc.content));
+        const newLoadedDoc = await TileDocument.load(ceramic, streamId)
+        setLoadedDoc(JSON.stringify(newLoadedDoc.content));
 
-      await doc.update({foo: 'baz'}, {tags: ['baz']});
-      const newUpdatedDoc = await TileDocument.load(newCeramic, streamId)
-      setUpdatedDoc(JSON.stringify(newUpdatedDoc.content));
+        await doc.update({foo: 'baz'}, {tags: ['baz']});
+        const newUpdatedDoc = await TileDocument.load(ceramic, streamId)
+        setUpdatedDoc(JSON.stringify(newUpdatedDoc.content));
 
-      for(let commitID of newUpdatedDoc.allCommitIds) {
-        const commitDoc = await TileDocument.load(newCeramic, commitID);
-        console.log(JSON.stringify(commitDoc.content));
-      }
-
-    })();
-  }, [setCeramic, setTestDoc, setStreamId]);
+        for(let commitID of newUpdatedDoc.allCommitIds) {
+          const commitDoc = await TileDocument.load(ceramic, commitID);
+          console.log(JSON.stringify(commitDoc.content));
+        }
+      })();
+    }
+  }, [ceramic, setCeramic, setTestDoc, setStreamId]);
 
   function getTestDocUI(testDoc, streamId) {
     let content = <h3>Test doc loading...</h3>
@@ -71,14 +93,54 @@ function MyApp() {
     return content
   }
 
-  return (
-    <div className="App">
+  function getEthNeededPanel() {
+    return <div className="csn-eth-panel">
+      <div className="csn-eth-message">You need ethereum</div>
+      <div className="csn-eth-metamask-message">Get <a href="https://metamask.io/" target="_blank" rel="noreferrer">MetaMask</a></div>
+    </div>;
+  }
+
+  function getWaitingForEthPanel() {
+    return <div className="csn-no-eth-accounts">
+      Waiting for Ethereum accounts...
+    </div>;
+  }
+
+  function getAppPanel() {
+    return <div className="csn-app">
       <h1>Ceramic is here</h1>
       {getTestDocUI(testDoc, streamId)}
       <div>
         <DataModels ceramic={ceramic} />
       </div>
-   </div>
+    </div>;
+  }
+
+  function getWaitingForDIDPanel() {
+    return <div className="csn-waiting-for-did">
+      Waiting for a decentralized ID to be provided...
+    </div>
+  }
+
+  return (
+    <div className="App">
+      { 
+        ethereum ? 
+        (
+          ethAddresses ?  
+          (
+            ceramic ?
+            getAppPanel() : 
+            getWaitingForDIDPanel()
+          ) 
+          :
+          getWaitingForEthPanel() 
+        )
+        :
+        getEthNeededPanel()
+      }
+    </div>
+  
   );
 }
 
