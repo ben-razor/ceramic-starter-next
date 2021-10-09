@@ -1,6 +1,6 @@
 # Ceramic Starter Next
 
-A NextJS app with the most basic functions of [Ceramic Network](https://ceramic.network/) implemented.
+A NextJS app with the most basic features of [Ceramic Network](https://ceramic.network/) implemented.
 
 ## Using Ceramic
 
