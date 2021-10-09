@@ -1,4 +1,8 @@
-# Using Ceramic
+# Ceramic Starter Next
+
+A NextJS app with the most basic functions of [Ceramic Network](https://ceramic.network/) implemented.
+
+## Using Ceramic
 
 Ceramic is a platform for storing and sharing streams of data.
 
