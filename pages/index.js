@@ -60,7 +60,7 @@ function Home() {
   useEffect(() => {
     if(ceramic) {
       (async () => {
-        const doc = await TileDocument.create(ceramic, {hello: 'benwar'})
+        const doc = await TileDocument.create(ceramic, {hello: 'ceramic'})
         setTestDoc(JSON.stringify(doc.content));
 
         const streamId = doc.id.toString();
